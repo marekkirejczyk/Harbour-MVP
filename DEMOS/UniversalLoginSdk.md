@@ -27,66 +27,70 @@ UniversalLoginSDK is an SDK composed of smart contracts, a js lib, and a relayer
 /// @param gasLimit Maximum gas amount that should be used for this transaction.
 /// @param operationType 0 - call, 1 - delegate call, 2 - create
 /// @param extraHash - for future compatibility (for now always keccak256(bytes32(0x0)))
-/// @return execution idetifier: signature hash, keccak256(signatures)
+/// @return execution identifier - keccak256(nonce, signatures)
 function executeSigned(
-  address to, 
-  uint256 value, 
-  bytes data, 
-  uint nonce, 
-  uint gasPrice, 
-  uint gasLimit, 
-  address gasToken, 
-  OperationType operationType, 
-  bytes32 extraHash, 
-  bytes signatures) public
+    address to,
+    uint256 value,
+    bytes data,
+    uint nonce,
+    uint gasPrice,
+    uint gasLimit,
+    address gasToken,
+    OperationType operationType,
+    bytes32 extraHash,
+    bytes messageSignatures) public;
 ```
 
 
 ### Hash calculation
 ```js
-    function calculateMessageHash(
-      address from, 
-      address to, 
-      uint value, 
-      bytes32 dataHash, 
-      uint nonce, 
-      uint gasPrice, 
-      uint gasLimit, 
-      address gasToken, 
-      OperationType operationType, 
-      bytes32 _extraHash) public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(
-          from, 
-          to, 
-          value, 
-          dataHash, 
-          nonce, 
-          gasPrice, 
-          gasLimit, 
-          gasToken, 
-          bytes4(0xc435c72c), 
-          uint(operationType), 
-          keccak256(bytes32(0x0))));
-    }
-```
-To be added:
-```
-  callPrefix,
-  operationType,
-  extraHash
+function calculateMessageHash(
+  address from, 
+  address to, 
+  uint value, 
+  bytes32 dataHash, 
+  uint nonce, 
+  uint gasPrice, 
+  uint gasLimit, 
+  address gasToken, 
+  OperationType operationType, 
+  bytes32 _extraHash) public pure returns (bytes32) {
+    return keccak256(abi.encodePacked(
+      from, 
+      to, 
+      value, 
+      dataHash, 
+      nonce, 
+      gasPrice, 
+      gasLimit, 
+      gasToken, 
+      uint(operationType), 
+      keccak256(bytes32(0x0)
+   )));
+}
+
 ```
 
 #### Interface 
 ```
-contract ERC1077 {
-    enum ExecutionType {MANAGEMENT, ACTION}
+contract IERC1077 {
     enum OperationType {CALL, DELEGATECALL, CREATE}
 
     event ExecutedSigned(bytes32 signHash, uint nonce, bool success);
 
     function lastNonce() public view returns (uint nonce);
 
-    function requiredSignatures(ExecutionType executionType) public view returns (uint);
+    function canExecute(
+        address to,
+        uint256 value,
+        bytes data,
+        uint nonce,
+        uint gasPrice,
+        uint gasLimit,
+        address gasToken,
+        OperationType operationType,
+        bytes32 extraHash,
+        bytes signatures) public view returns (bool);
 
     function executeSigned(
         address to,
@@ -98,16 +102,12 @@ contract ERC1077 {
         address gasToken,
         OperationType operationType,
         bytes32 extraHash,
-        bytes messageSignatures) public;
-
-Optional:
-    function getKey(bytes32 _key) public view returns(uint256 purpose, uint256 keyType, bytes32 key);
-    function addKey(bytes32 _key, uint256 _purpose, uint256 _keyType) public returns (bool success);
- }
+        bytes messageSignatures) returns (bytes32);
+}
 ```
 
 ### REST API
 
-POST /identity {managementKey, ensName}
-POST /identity/execution {contractAddress, to, value, data, nonce, gasToken, gasPrice, gasLimit, signatures}
+POST /identity {firstKey, ensName}
+POST /identity/execution {from, to, value, data, nonce, gasToken, gasPrice, gasLimit, operationType, signatures}
 
